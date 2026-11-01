@@ -1,0 +1,52 @@
+// server.js (or controllers/aiController.js)
+const express = require('express');
+const router = express.Router();
+// Example using Google Gen AI SDK or OpenAI SDK
+// const { GoogleGenAI } = require('@google/genai'); 
+// const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+router.post('/api/ai-chat', async (req, res) => {
+    try {
+        const { message, userRole } = req.body; // userRole: 'doctor', 'patient', 'admin'
+
+        if (!message) {
+            return res.status(400).json({ error: 'Message is required' });
+        }
+
+        // Define system instructions based on who is asking
+        let systemPrompt = "You are MedAI, an assistant for a Smart Healthcare Management System. Always maintain HIPAA compliance awareness and advise consulting a licensed physician for clinical diagnosis.";
+        
+        if (userRole === 'doctor') {
+            systemPrompt = "You are a clinical decision support assistant for physicians. Help summarize lab data, check medication interactions, and suggest triage priorities concisely.";
+        } else if (userRole === 'patient') {
+            systemPrompt = "You are a patient portal assistant. Help users understand general appointment booking, basic medication guidelines, and symptom tracking in easy-to-understand language.";
+        }
+
+        // --- REPLACE WITH YOUR ACTUAL LLM API CALL ---
+        // Example with Gemini:
+        // const response = await ai.models.generateContent({
+        //     model: 'gemini-2.5-flash',
+        //     contents: [
+        //         { role: 'user', parts: [{ text: `${systemPrompt}\n\nUser Query: ${message}` }] }
+        //     ]
+        // });
+        // const aiReply = response.text();
+
+        // Simulated response for immediate testing:
+        let aiReply = "I have processed your query through the Smart Healthcare database.";
+        const lower = message.toLowerCase();
+        if (lower.includes('symptom') || lower.includes('triage')) {
+            aiReply = "Triage protocol active: Please log vital parameters into the patient's electronic health record (EHR) for urgent priority review.";
+        } else if (lower.includes('medication')) {
+            aiReply = "Pharm-Check: No major contraindications found in active profile. Verify dosage limits with clinical guidelines.";
+        }
+
+        res.json({ success: true, reply: aiReply });
+
+    } catch (error) {
+        console.error('AI Integration Error:', error);
+        res.status(500).json({ success: false, error: 'Internal Server Error' });
+    }
+});
+
+module.exports = router;
