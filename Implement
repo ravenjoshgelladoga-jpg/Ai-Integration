@@ -1,0 +1,23 @@
+import React from 'react';
+import AiAssistant from './components/AiAssistant';
+
+function App() {
+  return (
+    <div className="min-h-screen bg-slate-50">
+      {/* Your existing Smart Healthcare Navbar & Dashboard components */}
+      <header className="bg-teal-800 text-white p-4 shadow">
+        <h1 className="text-lg font-bold">Smart Healthcare Management System</h1>
+      </header>
+
+      {/* Main Content Area */}
+      <main className="p-6">
+        <p className="text-slate-600">Welcome to your clinical dashboard.</p>
+      </main>
+
+      {/* Floating AI Assistant Widget */}
+      <AiAssistant userRole="doctor" /> {/* Pass 'doctor', 'patient', or 'admin' dynamically */}
+    </div>
+  );
+}
+
+export default App;
