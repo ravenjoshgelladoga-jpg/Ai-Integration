@@ -1,0 +1,176 @@
+// components/AiAssistant.jsx
+import React, { useState, useRef, useEffect } from 'react';
+import { Bot, User, Send, ShieldCheck, HeartPulse, Sparkles, X } from 'lucide-react';
+
+export default function AiAssistant({ userRole = 'patient' }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState([
+    {
+      sender: 'ai',
+      text: `Hello! I'm your MedAI Assistant. How can I help you navigate the Smart Healthcare system today?`,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    }
+  ]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const messagesEndRef = useRef(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, loading]);
+
+  const handleSendMessage = async (textToSend) => {
+    const query = textToSend || input;
+    if (!query.trim()) return;
+
+    const userMsg = {
+      sender: 'user',
+      text: query,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    setMessages((prev) => [...prev, userMsg]);
+    if (!textToSend) setInput('');
+    setLoading(true);
+
+    try {
+      // Connect to your Node.js backend route
+      const response = await fetch('http://localhost:5000/api/ai-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: query, userRole })
+      });
+
+      const data = await response.json();
+
+      const aiMsg = {
+        sender: 'ai',
+        text: data.success ? data.reply : "⚠️ Error communicating with healthcare server.",
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+
+      setMessages((prev) => [...prev, aiMsg]);
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: 'ai',
+          text: "⚠️ Network error. Please check your backend connection.",
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed bottom-6 right-6 z-50">
+      {/* Floating Trigger Button */}
+      {!isOpen && (
+        <button
+          onClick={() => setIsOpen(true)}
+          className="bg-teal-600 hover:bg-teal-700 text-white p-4 rounded-full shadow-2xl flex items-center gap-3 transition-transform hover:scale-105 group border-2 border-white/20"
+        >
+          <Bot className="w-6 h-6 animate-pulse" />
+          <span className="font-semibold text-sm pr-1 hidden sm:inline">MedAI Assistant</span>
+        </button>
+      )}
+
+      {/* Chat Box Window */}
+      {isOpen && (
+        <div className="w-[90vw] sm:w-[420px] h-[550px] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
+          
+          {/* Header */}
+          <div className="bg-teal-700 text-white px-5 py-3.5 flex items-center justify-between shadow-sm">
+            <div className="flex items-center space-x-3">
+              <div className="w-9 h-9 rounded-xl bg-teal-600 flex items-center justify-center border border-teal-500 shadow-inner">
+                <Bot className="w-5 h-5 text-teal-100" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-sm flex items-center gap-1.5">
+                  Smart Healthcare AI <Sparkles className="w-3.5 h-3.5 text-teal-300" />
+                </h3>
+                <p className="text-[11px] text-teal-200 flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Role: {userRole.toUpperCase()}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setIsOpen(false)}
+              className="text-teal-200 hover:text-white p-1.5 rounded-lg hover:bg-teal-800 transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Chat Messages Body */}
+          <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-50/60">
+            {messages.map((msg, index) => {
+              const isUser = msg.sender === 'user';
+              return (
+                <div key={index} className={`flex items-start gap-2.5 ${isUser ? 'flex-row-reverse' : ''}`}>
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs shadow-sm ${isUser ? 'bg-slate-700 text-white' : 'bg-teal-600 text-white'}`}>
+                    {isUser ? <User className="w-3.5 h-3.5" /> : <Bot className="w-3.5 h-3.5" />}
+                  </div>
+                  <div className={`max-w-[78%] p-3 rounded-2xl text-xs leading-relaxed shadow-sm ${isUser ? 'bg-teal-700 text-white rounded-tr-none' : 'bg-white text-slate-700 border border-slate-100 rounded-tl-none'}`}>
+                    <p>{msg.text}</p>
+                    <span className={`block text-[9px] mt-1 text-right ${isUser ? 'text-teal-200' : 'text-slate-400'}`}>
+                      {msg.timestamp}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Typing Loader */}
+            {loading && (
+              <div className="flex items-center gap-2 text-slate-400 text-xs italic p-2">
+                <div className="w-2 h-2 bg-teal-500 rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-teal-500 rounded-full animate-bounce [animation-delay:-.2s]"></div>
+                <div className="w-2 h-2 bg-teal-500 rounded-full animate-bounce [animation-delay:-.4s]"></div>
+                <span>Analyzing medical logs...</span>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Quick Prompts Bar */}
+          <div className="px-3 py-2 bg-slate-100 border-t border-slate-200 flex gap-1.5 overflow-x-auto no-scrollbar">
+            <button onClick={() => handleSendMessage("Check symptom triage priority")} className="text-[10px] whitespace-nowrap bg-white hover:bg-teal-50 text-teal-700 px-2.5 py-1 rounded-md border border-slate-200 transition font-medium shadow-2xs">🩺 Symptom Triage</button>
+            <button onClick={() => handleSendMessage("Verify drug interaction guidelines")} className="text-[10px] whitespace-nowrap bg-white hover:bg-teal-50 text-teal-700 px-2.5 py-1 rounded-md border border-slate-200 transition font-medium shadow-2xs">💊 Med Interaction</button>
+            <button onClick={() => handleSendMessage("How to book a specialist appointment?")} className="text-[10px] whitespace-nowrap bg-white hover:bg-teal-50 text-teal-700 px-2.5 py-1 rounded-md border border-slate-200 transition font-medium shadow-2xs">📅 Book Appointment</button>
+          </div>
+
+          {/* Input Footer */}
+          <div className="p-3 bg-white border-t border-slate-200">
+            <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="flex items-center gap-2">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Ask MedAI anything..."
+                className="flex-1 bg-slate-100 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition"
+              />
+              <button
+                type="submit"
+                disabled={loading || !input.trim()}
+                className="bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white p-2.5 rounded-xl transition shadow-sm flex items-center justify-center"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </form>
+            <div className="flex items-center justify-center gap-1 mt-2 text-[9px] text-slate-400">
+              <ShieldCheck className="w-3 h-3 text-teal-600" /> Secure HIPAA-Ready Environment
+            </div>
+          </div>
+
+        </div>
+      )}
+    </div>
+  );
+}
